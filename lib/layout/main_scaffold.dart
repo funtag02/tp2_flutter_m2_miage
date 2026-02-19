@@ -33,7 +33,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: PageTransitionSwitcher(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 400),
         transitionBuilder: (child, animation, secondaryAnimation) {
           return SharedAxisTransition(
             animation: animation,
