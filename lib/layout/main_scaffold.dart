@@ -17,7 +17,7 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   final List<Widget> _pages = [
     BuyItemsPage(),
-    ItemsBasketPage(),
+    ItemsBasketPage(username: 'chef',),
     UserProfilePage(),
   ];
 
