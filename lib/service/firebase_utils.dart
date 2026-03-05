@@ -1,18 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_application_2/model/Article.dart';
+import 'package:flutter_application_2/model/article.dart';
 import 'package:flutter_application_2/model/user.dart';
 
 //// ARTICLE
 
-Future<List<Article>> getArticlesFromFirebase() async {
-  final snapshot = await FirebaseFirestore.instance
-      .collection("articles")
-      .get();
-
-  return snapshot.docs.map((doc) {
-    final data = doc.data();
-    return Article.fromFirestore(data);
-  }).toList();
+Future<List<MapEntry<String, Article>>> getArticlesFromFirebase() async {
+  final snapshot = await FirebaseFirestore.instance.collection('articles').get();
+  return snapshot.docs
+      .map((doc) => MapEntry(doc.id, Article.fromFirestore(doc.data())))
+      .toList();
 }
 
 //// USER
