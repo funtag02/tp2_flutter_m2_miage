@@ -16,8 +16,8 @@ class _MainScaffoldState extends State<MainScaffold> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    BuyItemsPage(),
-    ItemsBasketPage(username: 'chef',),
+    BuyItemsPage(username: 'chef'),
+    ItemsBasketPage(username: 'chef'),
     UserProfilePage(),
   ];
 

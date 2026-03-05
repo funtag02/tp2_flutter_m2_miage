@@ -1,21 +1,35 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_2/model/Article.dart';
+import 'package:flutter_application_2/model/article.dart';
 import 'package:flutter_application_2/pages/item_detail_page.dart';
 import 'package:flutter_application_2/service/firebase_utils.dart';
 
-class BuyItemsPage extends StatelessWidget {
-  const BuyItemsPage({super.key});
+class BuyItemsPage extends StatefulWidget {
+  final String username;
+
+  const BuyItemsPage({super.key, required this.username});
+
+  @override
+  State<BuyItemsPage> createState() => _BuyItemsPageState();
+}
+
+class _BuyItemsPageState extends State<BuyItemsPage> {
+  late Future<List<MapEntry<String, Article>>> _articlesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _articlesFuture = getArticlesFromFirebase();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Buy Items")),
-      body: FutureBuilder<List<Article>>(
-        future: getArticlesFromFirebase(),
+      body: FutureBuilder<List<MapEntry<String, Article>>>(
+        future: _articlesFuture,
         builder: (context, snapshot) {
-
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -29,7 +43,7 @@ class BuyItemsPage extends StatelessWidget {
             );
           }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          if (snapshot.data == null || snapshot.data!.isEmpty) {
             return const Center(child: Text("No articles found"));
           }
 
@@ -46,19 +60,21 @@ class BuyItemsPage extends StatelessWidget {
                 childAspectRatio: 0.8,
               ),
               itemBuilder: (context, index) {
-                final article = articles[index];
+                final articleId = articles[index].key;
+                final article = articles[index].value;
                 Uint8List imageBytes = base64Decode(article.imageBase64);
 
                 return InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: () {
-                    print("Article cliqué : ${article.title}");
-                    
-                    // Exemple : navigation vers une autre page
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ItemDetailPage(article: article),
+                        builder: (_) => ItemDetailPage(
+                          article: article,
+                          articleId: articleId,
+                          username: widget.username,
+                        ),
                       ),
                     );
                   },
@@ -89,9 +105,7 @@ class BuyItemsPage extends StatelessWidget {
                             children: [
                               Text(
                                 article.title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               Row(
@@ -106,7 +120,7 @@ class BuyItemsPage extends StatelessWidget {
                                     ),
                                   ),
                                 ],
-                              )
+                              ),
                             ],
                           ),
                         ),

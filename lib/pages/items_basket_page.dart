@@ -13,7 +13,7 @@ class ItemsBasketPage extends StatefulWidget {
 }
 
 class _ItemsBasketPageState extends State<ItemsBasketPage> {
-  List<MapEntry<DocumentReference, Article>> _items = [];
+  Map<String, MapEntry<Article, int>> _items = {};
   bool _isLoading = true;
   String? _error;
 
@@ -51,15 +51,20 @@ class _ItemsBasketPageState extends State<ItemsBasketPage> {
         basketRefs = [];
       }
 
-      final List<MapEntry<DocumentReference, Article>> items = [];
+      final Map<String, MapEntry<Article, int>> items = {};
       for (final ref in basketRefs) {
         if (ref is DocumentReference) {
-          final articleDoc = await ref.get();
-          if (articleDoc.exists) {
-            items.add(MapEntry(
-              ref,
-              Article.fromFirestore(articleDoc.data() as Map<String, dynamic>),
-            ));
+          final id = ref.id;
+          if (items.containsKey(id)) {
+            items[id] = MapEntry(items[id]!.key, items[id]!.value + 1);
+          } else {
+            final articleDoc = await ref.get();
+            if (articleDoc.exists) {
+              items[id] = MapEntry(
+                Article.fromFirestore(articleDoc.data() as Map<String, dynamic>),
+                1,
+              );
+            }
           }
         }
       }
@@ -76,7 +81,7 @@ class _ItemsBasketPageState extends State<ItemsBasketPage> {
     }
   }
 
-  Future<void> _removeItem(DocumentReference ref) async {
+  Future<void> _removeOneItem(String docId) async {
     try {
       final userSnapshot = await FirebaseFirestore.instance
           .collection('User')
@@ -89,20 +94,60 @@ class _ItemsBasketPageState extends State<ItemsBasketPage> {
       final userDoc = userSnapshot.docs.first;
       final List<dynamic> basketRefs = List.from(userDoc.data()['basket'] ?? []);
 
-      basketRefs.removeWhere((r) => r is DocumentReference && r.id == ref.id);
+      // Retire une seule occurrence
+      final index = basketRefs.indexWhere(
+        (r) => r is DocumentReference && r.id == docId,
+      );
+      if (index != -1) basketRefs.removeAt(index);
+
       await userDoc.reference.update({'basket': basketRefs});
 
       setState(() {
-        _items.removeWhere((entry) => entry.key.id == ref.id);
+        final currentQty = _items[docId]!.value;
+        if (currentQty <= 1) {
+          _items.remove(docId);
+        } else {
+          _items[docId] = MapEntry(_items[docId]!.key, currentQty - 1);
+        }
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erreur lors de la suppression : $e")),
+        SnackBar(content: Text("Erreur : $e")),
       );
     }
   }
 
-  double get _total => _items.fold(0, (sum, entry) => sum + entry.value.price);
+  Future<void> _addOneItem(String docId) async {
+    try {
+      final userSnapshot = await FirebaseFirestore.instance
+          .collection('User')
+          .where('username', isEqualTo: widget.username)
+          .limit(1)
+          .get();
+
+      if (userSnapshot.docs.isEmpty) return;
+
+      final userDoc = userSnapshot.docs.first;
+      final List<dynamic> basketRefs = List.from(userDoc.data()['basket'] ?? []);
+
+      final newRef = FirebaseFirestore.instance.collection('articles').doc(docId);
+      basketRefs.add(newRef);
+      await userDoc.reference.update({'basket': basketRefs});
+
+      setState(() {
+        _items[docId] = MapEntry(_items[docId]!.key, _items[docId]!.value + 1);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur : $e")),
+      );
+    }
+  }
+
+  double get _total => _items.values.fold(
+        0,
+        (sum, entry) => sum + entry.key.price * entry.value,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -126,10 +171,13 @@ class _ItemsBasketPageState extends State<ItemsBasketPage> {
                             itemCount: _items.length,
                             separatorBuilder: (_, __) => const Divider(),
                             itemBuilder: (context, index) {
-                              final article = _items[index].value;
-                              final ref = _items[index].key;
+                              final docId = _items.keys.elementAt(index);
+                              final article = _items[docId]!.key;
+                              final quantity = _items[docId]!.value;
+
                               return Row(
                                 children: [
+                                  // Image
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
                                     child: article.imageBase64.isNotEmpty
@@ -147,6 +195,7 @@ class _ItemsBasketPageState extends State<ItemsBasketPage> {
                                           ),
                                   ),
                                   const SizedBox(width: 12),
+                                  // Infos
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,15 +215,68 @@ class _ItemsBasketPageState extends State<ItemsBasketPage> {
                                       ],
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.close, color: Colors.red),
-                                    onPressed: () => _removeItem(ref),
+                                  // Contrôles quantité + suppression
+                                  Column(
+                                    children: [
+                                      // Bouton X pour tout supprimer
+                                      IconButton(
+                                        icon: const Icon(Icons.close, color: Colors.red, size: 18),
+                                        onPressed: () {
+                                          // Supprime toutes les occurrences
+                                          for (int i = 0; i < quantity; i++) {
+                                            _removeOneItem(docId);
+                                          }
+                                        },
+                                      ),
+                                      // Contrôles +/-
+                                      Row(
+                                        children: [
+                                          InkWell(
+                                            onTap: () => _removeOneItem(docId),
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: Container(
+                                              width: 28,
+                                              height: 28,
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[200],
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: const Icon(Icons.remove, size: 16),
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                                            child: Text(
+                                              "$quantity",
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ),
+                                          InkWell(
+                                            onTap: () => _addOneItem(docId),
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: Container(
+                                              width: 28,
+                                              height: 28,
+                                              decoration: BoxDecoration(
+                                                color: Colors.deepPurple,
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: const Icon(Icons.add, size: 16, color: Colors.white),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ],
                               );
                             },
                           ),
                         ),
+                        // Total
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 12),
