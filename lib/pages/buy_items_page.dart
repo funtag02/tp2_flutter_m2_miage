@@ -2,19 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_2/model/Article.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_application_2/pages/item_detail_page.dart';
-
-Future<List<Article>> getArticlesFromFirebase() async {
-  final snapshot = await FirebaseFirestore.instance
-      .collection("articles")
-      .get();
-
-  return snapshot.docs.map((doc) {
-    final data = doc.data();
-    return Article.fromFirestore(data);
-  }).toList();
-}
+import 'package:flutter_application_2/service/firebase_utils.dart';
 
 class BuyItemsPage extends StatelessWidget {
   const BuyItemsPage({super.key});
