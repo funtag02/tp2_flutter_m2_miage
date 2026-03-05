@@ -29,32 +29,52 @@ class ItemDetailPage extends StatelessWidget {
 
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    article.title,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        article.title,
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+
+                      // mets simplement la brand en gras, avec le nom de l'article pas en gras, mais garde le même layout (mets ton code en dessous)
+                      Row(
+                        children: [
+                          Text(
+                            '${article.category.label} - ',
+                            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                          ),
+
+                          Text(
+                            article.brand,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+
+    
+                    ],
                   ),
 
-                  const SizedBox(height: 10),
-
-                  Text(
-                    "${article.price.toStringAsFixed(2)} €",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.green,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${article.price.toStringAsFixed(2)} €',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green[700]),
+                      ),
+                      
+                      Text(
+                        'Taille : ${article.size}',
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                      ),
+                    ],
                   ),
-
-                  const SizedBox(height: 10),
-
-                  Text("Taille : ${article.size}"),
                 ],
-              ),
+              )
             ),
           ],
         ),
