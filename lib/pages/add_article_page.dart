@@ -1,11 +1,10 @@
-import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_application_2/service/article_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_application_2/model/article.dart';
-
 
 class AddArticlePage extends StatefulWidget {
   const AddArticlePage({super.key});
@@ -15,7 +14,9 @@ class AddArticlePage extends StatefulWidget {
 }
 
 class _AddArticlePageState extends State<AddArticlePage>
-    with SingleTickerProviderStateMixin {
+  
+  with SingleTickerProviderStateMixin {
+  String _encodeBase64(Uint8List bytes) => base64Encode(bytes);
   // ── État du formulaire ──────────────────────────────────────────
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
@@ -23,7 +24,7 @@ class _AddArticlePageState extends State<AddArticlePage>
   final _brandController = TextEditingController();
   final _priceController = TextEditingController();
 
-  File? _imageFile;
+  Uint8List? _imageBytes;
   String? _imageBase64;           // ← stockage base64
   ArticleCategory? _category;     // ← enum à la place de String
   bool _detectionEnCours = false;
@@ -76,37 +77,47 @@ class _AddArticlePageState extends State<AddArticlePage>
 
   // ── Sélection image ────────────────────────────────────────────
   Future<void> _choisirImage(ImageSource source) async {
-    Navigator.pop(context);
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: source,
-      imageQuality: 85,
-      maxWidth: 1200,
-    );
-    if (picked == null) return;
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
 
-    final file = File(picked.path);
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1200,
+      );
+      if (picked == null) return;
 
-    // Conversion en base64
-    final bytes = await file.readAsBytes();
-    final base64String = base64Encode(bytes);
+      // ✅ Lecture des bytes directement depuis XFile (fonctionne web + mobile)
+      final bytes = await picked.readAsBytes();
+      final base64String = base64Encode(bytes);
 
-    setState(() {
-      _imageFile = file;
-      _imageBase64 = base64String;
-      _category = null;
-      _detectionEnCours = true;
-    });
+      if (!mounted) return;
 
-    final cat = await ArticleService.detecterCategorie(file);
-    if (mounted) {
       setState(() {
-        _category = cat;
-        _detectionEnCours = false;
+        // Sur web, File() n'existe pas — on stocke les bytes pour l'affichage
+        _imageBytes = bytes;       // ← nouveau champ Uint8List?
+        _imageBase64 = base64String;
+        _category = null;
+        _detectionEnCours = true;
       });
+
+      final cat = await ArticleService.detecterCategorie(bytes);
+      if (mounted) {
+        setState(() {
+          _category = cat;
+          _detectionEnCours = false;
+        });
+      }
+    } catch (e, stack) {
+      debugPrint('❌ Erreur _choisirImage: $e');
+      debugPrint('$stack');
     }
   }
-
+    
   void _afficherChoixImage() {
     showModalBottomSheet(
       context: context,
@@ -160,7 +171,7 @@ class _AddArticlePageState extends State<AddArticlePage>
   // ── Validation & sauvegarde ────────────────────────────────────
   Future<void> _valider() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_imageFile == null || _imageBase64 == null) {
+    if (_imageBytes == null || _imageBase64 == null) {
       _showSnack('Veuillez ajouter une photo.', isError: true);
       return;
     }
@@ -312,25 +323,25 @@ class _AddArticlePageState extends State<AddArticlePage>
         duration: const Duration(milliseconds: 300),
         height: 220,
         decoration: BoxDecoration(
-          color: _imageFile == null ? _white : Colors.transparent,
+          color: _imageBytes == null ? _white : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: _imageFile == null
+            color: _imageBytes == null
                 ? _deepPurple.withOpacity(0.4)
                 : Colors.transparent,
             width: 2,
-            style: _imageFile == null
+            style: _imageBytes == null
                 ? BorderStyle.solid
                 : BorderStyle.none,
           ),
-          image: _imageFile != null
+          image: _imageBytes != null
               ? DecorationImage(
-                  image: FileImage(_imageFile!),
+                  image: MemoryImage(_imageBytes!),
                   fit: BoxFit.cover,
                 )
               : null,
         ),
-        child: _imageFile == null
+        child: _imageBytes == null
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -526,7 +537,7 @@ class _AddArticlePageState extends State<AddArticlePage>
                   )
                 else
                   Text(
-                    _imageFile == null
+                    _imageBytes == null
                         ? 'Ajoutez une image pour détecter la catégorie'
                         : '—',
                     style: TextStyle(

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_application_2/model/article.dart';
@@ -9,7 +9,7 @@ import 'package:flutter_application_2/model/article.dart';
 class ArticleService {
   /// Détecte la catégorie depuis l'image.
   /// Remplacer par un appel réel (Cloud Vision, GPT-4V…).
-  static Future<ArticleCategory> detecterCategorie(File image) async {
+  static Future<ArticleCategory> detecterCategorie(Uint8List image) async {
     await Future.delayed(const Duration(seconds: 2));
     final categories = ArticleCategory.values;
     return categories[DateTime.now().millisecond % categories.length];
