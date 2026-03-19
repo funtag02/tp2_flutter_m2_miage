@@ -29,6 +29,15 @@ class Article {
       ),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+      'title': title,
+      'size': size,
+      'price': price,
+      'imageBase64': imageBase64,
+      'brand': brand,
+      'category': category.name,
+    };
 }
 
 enum ArticleCategory {

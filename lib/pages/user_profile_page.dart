@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_2/service/firebase_utils.dart';
 import 'package:flutter_application_2/model/user.dart';
+import 'package:flutter_application_2/pages/add_article_page.dart'; // 👈 à adapter selon ton arborescence
 
 class UserProfilePage extends StatefulWidget {
   @override
@@ -17,7 +18,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   final chefUseraname = "chef";
   final chefsDocname = "admin_001";
-  
+
   @override
   void dispose() {
     _loginController.dispose();
@@ -43,7 +44,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Future<void> _saveToFirebase() async {
     try {
-      // jsp pourquoi le username ne marche pas si j'utilise la variable finale definie au dessus
       await updateUserDataInFirebase("chef", {
         'password': _passwordController.text,
         'adress': _adresseController.text,
@@ -60,11 +60,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
     }
   }
 
+  /// Ouvre la page d'ajout d'article
+  void _naviguerVersAjoutArticle() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddArticlePage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profil de l\'utilisateur'),
+        title: const Text('Profil de l\'utilisateur'),
       ),
       body: FutureBuilder<User>(
         future: getUserDataFromFirebase(chefsDocname),
@@ -86,7 +94,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
             return const Center(child: Text("User data not found"));
           }
 
-          // Populate les champs une seule fois quand les données arrivent
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _populateFields(snapshot.data!);
           });
@@ -97,17 +104,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
               children: [
                 TextField(
                   controller: _loginController,
-                  decoration: InputDecoration(labelText: 'Login'),
+                  decoration: const InputDecoration(labelText: 'Login'),
                   readOnly: true,
                 ),
                 TextField(
                   controller: _passwordController,
-                  decoration: InputDecoration(labelText: 'Password'),
+                  decoration: const InputDecoration(labelText: 'Password'),
                   obscureText: true,
                 ),
                 TextField(
                   controller: _anniversaireController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Anniversaire',
                     hintText: 'jj/mm/aaaa',
                     suffixIcon: Icon(Icons.calendar_today),
@@ -130,28 +137,56 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 ),
                 TextField(
                   controller: _adresseController,
-                  decoration: InputDecoration(labelText: 'Adresse'),
+                  decoration: const InputDecoration(labelText: 'Adresse'),
                 ),
                 TextField(
                   controller: _codePostalController,
-                  decoration: InputDecoration(labelText: 'Code Postal'),
+                  decoration: const InputDecoration(labelText: 'Code Postal'),
                   keyboardType: TextInputType.number,
                 ),
                 TextField(
                   controller: _villeController,
-                  decoration: InputDecoration(labelText: 'Ville'),
+                  decoration: const InputDecoration(labelText: 'Ville'),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
+
+                // ── Bouton Ajouter un vêtement ──────────────────
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF08A88A),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _naviguerVersAjoutArticle,
+                    icon: const Icon(Icons.add_circle_outline_rounded,
+                        color: Colors.white),
+                    label: const Text(
+                      'Ajouter un vêtement',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+                // ────────────────────────────────────────────────
+
+                const SizedBox(height: 10),
                 ElevatedButton(
                   style: const ButtonStyle(
                     backgroundColor:
                         WidgetStatePropertyAll<Color>(Colors.deepPurple),
                   ),
                   onPressed: _saveToFirebase,
-                  child:
-                      Text('Valider', style: TextStyle(color: Colors.white)),
+                  child: const Text('Valider',
+                      style: TextStyle(color: Colors.white)),
                 ),
-                SizedBox(height: 10),
+                const SizedBox(height: 10),
                 ElevatedButton(
                   style: const ButtonStyle(
                     backgroundColor: WidgetStatePropertyAll<Color>(
@@ -160,7 +195,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   onPressed: () {
                     Navigator.pushReplacementNamed(context, '/login');
                   },
-                  child: Text('Se déconnecter',
+                  child: const Text('Se déconnecter',
                       style: TextStyle(color: Colors.white)),
                 ),
               ],
