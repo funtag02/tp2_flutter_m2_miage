@@ -4,7 +4,7 @@ Application de vente de vêtements développée en Flutter avec Firebase.
 
 ## Tester le projer (lien github pages)
 
-Vous rendre sur : 
+Vous rendre sur : https://funtag02.github.io/tp2_flutter_m2_miage/
 
 ## 🚀 Lancer le projet (local)
 
